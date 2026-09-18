@@ -6,40 +6,51 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
-int32_t query(int fd, const char *text) {
-    uint32_t len = (uint32_t)strlen(text);
+static void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len) {
+    buf.insert(buf.end(), data, data + len);
+}
+
+static int32_t send_req(int fd, const uint8_t *text, size_t len) {
     if (len > K_MAX_MSG) {
         return -1;
     }
 
-    // send request
-    char wbuf[4 + K_MAX_MSG];
-    memcpy(wbuf, &len, 4); // assume little endian
-    memcpy(&wbuf[4], text, len);
+    std::vector<uint8_t> wbuf;
+    buf_append(wbuf, (const uint8_t*)&len, 4);
+    buf_append(wbuf, text, len);
+    return write_all(fd, wbuf.data(), wbuf.size());
+}
 
-    if (int32_t err = write_all(fd, wbuf, 4 + len)) {
-        return err;
-    }
-
-    // 4 bytes header
-    char rbuf[4 + K_MAX_MSG];
+static int32_t read_res(int fd) {
+    std::vector<uint8_t> rbuf;
+    rbuf.resize(4);
     errno = 0;
-    int32_t err = read_full(fd, rbuf, 4);
+
+    int32_t err = read_full(fd, &rbuf[0], 4);
     if (err) {
-        msg(errno == 0 ? "EOF" : "read() error");
+        if (errno == 0) {
+            msg("EOF");
+        } else {
+            msg("read() error");
+        }
         return err;
     }
 
-    memcpy(&len, rbuf, 4);
+    uint32_t len = 0;
+    memcpy(&len, rbuf.data(), 4);
+
     if (len > K_MAX_MSG) {
         msg("too long");
         return -1;
     }
 
     // reply body
+    rbuf.resize(4 + len);
     err = read_full(fd, &rbuf[4], len);
     if (err) {
         msg("read() error");
@@ -47,10 +58,9 @@ int32_t query(int fd, const char *text) {
     }
 
     // do something
-    printf("Server says: %.*s\n", len, &rbuf[4]);
+    printf("len:%u data:%.*s\n", len, len < 100 ? len : 100, &rbuf[4]);
     return 0;
 }
-
 
 int main(int argc, char **argv) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -72,18 +82,24 @@ int main(int argc, char **argv) {
         die("connect");
     }
 
-    // multiple requests
-    int32_t err = query(fd, "hello");
-    if (err) {
-        goto L_DONE;
+    std::vector<std::string> query_list = {
+        "hello", "hello2", "hello3",
+        std::string(K_MAX_MSG, 'z'),
+        "hello5"
+    };
+
+    for (const std::string &s : query_list) {
+        int32_t err = send_req(fd, (uint8_t *)s.data(), s.size());
+        if (err) {
+            goto L_DONE;
+        }
     }
-    err = query(fd, "hello2");
-    if (err) {
-        goto L_DONE;
-    }
-    err = query(fd, "hello3");
-    if (err) {
-        goto L_DONE;
+
+    for (size_t i = 0; i < query_list.size(); i++) {
+        int32_t err = read_res(fd);
+        if (err) {
+            goto L_DONE;
+        }
     }
 
     L_DONE:
