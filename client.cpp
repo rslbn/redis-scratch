@@ -35,7 +35,7 @@ static int32_t send_req(int fd, const std::vector<std::string> &cmd) {
         memcpy(&wbuf[cur + 4], s.data(), s.size());
         cur += 4 + s.size();
     }
-    return write_all(fd, (const uint8_t *)wbuf, 4 + len);
+    return write_all(fd, (const uint8_t *)&wbuf[0], 4 + len);
 }
 
 static int32_t read_res(int fd) {
@@ -61,7 +61,7 @@ static int32_t read_res(int fd) {
     }
 
     // reply body
-    err = read_full(fd, (uint8_t *)&rbuf[4], 4);
+    err = read_full(fd, (uint8_t *)&rbuf[4], len);
     if (err) {
         msg("read() error");
         return err;
