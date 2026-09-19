@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <cerrno>
 
-#define K_MAX_MSG 32 << 20
+#define K_MAX_MSG 4096
 
 void msg(const char *msg);
 void msg_errno(const char *msg);

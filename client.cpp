@@ -15,23 +15,34 @@ static void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t le
     buf.insert(buf.end(), data, data + len);
 }
 
-static int32_t send_req(int fd, const uint8_t *text, size_t len) {
+static int32_t send_req(int fd, const std::vector<std::string> &cmd) {
+    uint32_t len = 4;
+    for (const std::string &s: cmd) {
+        len += 4 + s.size();
+    }
     if (len > K_MAX_MSG) {
         return -1;
     }
 
-    std::vector<uint8_t> wbuf;
-    buf_append(wbuf, (const uint8_t*)&len, 4);
-    buf_append(wbuf, text, len);
-    return write_all(fd, wbuf.data(), wbuf.size());
+    char wbuf[(K_MAX_MSG) + 4]; 
+    memcpy(&wbuf[0], &len, 4); // assume little endian
+    uint32_t n = cmd.size();
+    memcpy(&wbuf[4], &n, 4);
+    size_t cur = 8;
+    for (const std::string &s : cmd) {
+        uint32_t p = (uint32_t) s.size();
+        memcpy(&wbuf[cur], &p, 4);
+        memcpy(&wbuf[cur + 4], s.data(), s.size());
+        cur += 4 + s.size();
+    }
+    return write_all(fd, (const uint8_t *)wbuf, 4 + len);
 }
 
 static int32_t read_res(int fd) {
-    std::vector<uint8_t> rbuf;
-    rbuf.resize(4);
-    errno = 0;
 
-    int32_t err = read_full(fd, &rbuf[0], 4);
+    char rbuf[(K_MAX_MSG) + 4];
+    errno = 0;
+    int32_t err = read_full(fd, (uint8_t*)&rbuf[0], 4);
     if (err) {
         if (errno == 0) {
             msg("EOF");
@@ -42,7 +53,7 @@ static int32_t read_res(int fd) {
     }
 
     uint32_t len = 0;
-    memcpy(&len, rbuf.data(), 4);
+    memcpy(&len, rbuf, 4);
 
     if (len > K_MAX_MSG) {
         msg("too long");
@@ -50,15 +61,17 @@ static int32_t read_res(int fd) {
     }
 
     // reply body
-    rbuf.resize(4 + len);
-    err = read_full(fd, &rbuf[4], len);
+    err = read_full(fd, (uint8_t *)&rbuf[4], 4);
     if (err) {
         msg("read() error");
         return err;
     }
 
-    // do something
-    printf("len:%u data:%.*s\n", len, len < 100 ? len : 100, &rbuf[4]);
+    // print the result
+    uint32_t rescode = 0;
+    memcpy(&rescode, &rbuf[4], 4);
+
+    printf("server says: [%u] %.*s\n", rescode, len - 4, &rbuf[8]);
     return 0;
 }
 
@@ -82,26 +95,19 @@ int main(int argc, char **argv) {
         die("connect");
     }
 
-    std::vector<std::string> query_list = {
-        "hello", "hello2", "hello3",
-        std::string(K_MAX_MSG, 'z'),
-        "hello5"
-    };
-
-    for (const std::string &s : query_list) {
-        int32_t err = send_req(fd, (uint8_t *)s.data(), s.size());
-        if (err) {
-            goto L_DONE;
-        }
+    std::vector<std::string> cmd;
+    for (int i = 2; i < argc; i++) {
+        cmd.push_back(argv[i]);
     }
 
-    for (size_t i = 0; i < query_list.size(); i++) {
-        int32_t err = read_res(fd);
-        if (err) {
-            goto L_DONE;
-        }
+    int32_t err = send_req(fd, cmd);
+    if (err) {
+        goto L_DONE;
     }
-
+    err = read_res(fd);
+    if (err) {
+        goto L_DONE;
+    }
     L_DONE:
         close(fd);
     return 0;
