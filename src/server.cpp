@@ -69,7 +69,7 @@ static void out_nil(Buffer &out) {
 }
 
 static void out_str(Buffer &out, const char *s, size_t size) {
-    buf_append_u8(out, TAG_INT);
+    buf_append_u8(out, TAG_STR);
     buf_append_u32(out, (uint32_t) size);
     buf_append(out, (const uint8_t *)s, size);
 }
