@@ -83,6 +83,17 @@ static int32_t print_response(const uint8_t *data, size_t size) {
                 printf("(str) %.*s\n", len, &data[1 + 4]);
                 return 1 + 4 + len;
             }
+        case TAG_INT:
+            if (size < 1 + 8) {
+                msg("bad response");
+                return -1;
+            }
+            {
+                int64_t val = 0;
+                memcpy(&val, &data[1], 8);
+                printf("(int) %ld\n", val);
+                return 1 + 8;
+            }
         case TAG_DBL:
             if (size < 1 + 8) {
                 msg("bad response");
