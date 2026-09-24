@@ -121,9 +121,9 @@ static int32_t print_response(const uint8_t *data, size_t size) {
                         return rv;
                     }
                     arr_bytes += (size_t)rv;
-                    printf("(arr) end\n");
-                    return (int32_t)arr_bytes;
                 }
+                printf("(arr) end\n");
+                return (int32_t)arr_bytes;
             }
         default:
             msg("bad response");
