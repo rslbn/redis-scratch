@@ -124,7 +124,6 @@ static void do_get(std::vector<std::string> &cmd, Buffer &out) {
 
     const std::string &val = container_of(node, Entry, node)->val;
     assert(val.size() <= K_MAX_MSG);
-    out.assign(val.begin(), val.end());
     return out_str(out, val.data(), val.size());
 }
 
