@@ -13,7 +13,7 @@
 #include <fcntl.h>
 
 #define container_of(ptr, T, member) \
-    ((T *)( (char *)ptr - offsetof(T, member) ))
+    ((T *)( (char *)(ptr) - offsetof(T, member) ))
 
 static struct {
     HMap db; // top-level hashtable
@@ -30,12 +30,13 @@ struct Entry {
 static bool entry_eq(HNode *lhs, HNode *rhs) {
     struct Entry *le = container_of(lhs, struct Entry, node);
     struct Entry *re = container_of(rhs, struct Entry, node);
+    return le->key == re->key;
 }
 
 static uint64_t str_hash(const uint8_t *data, size_t len) {
     uint32_t h = 0x811c9dc5;
     for (size_t i = 0; i < len; i++) {
-        h = (h + data[i] * 0x01000193);
+        h = (h + data[i]) * 0x01000193;
     }
     return h;
 }
@@ -79,7 +80,7 @@ static void do_set(std::vector<std::string> &cmd, Response &) {
     }
 }
 
-static void do_del(std::vector<std::string> cmd, Response &) {
+static void do_del(std::vector<std::string> &cmd, Response &) {
     Entry key;
     key.key.swap(cmd[1]);
     key.node.hcode = str_hash((uint8_t *)key.key.data(), key.key.size());
