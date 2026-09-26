@@ -75,6 +75,10 @@ static void buf_append_u32(Buffer &buf, uint32_t data) {
     buf_append(buf, (const uint8_t *)&data, 4); // assume little-endian
 }
 
+static void buf_append_i64(Buffer &buf, int64_t data) {
+    buf_append(buf, (const uint8_t *)&data, 8);
+}
+
 static void buf_append_dbl(Buffer &buf, double data) {
     buf_append(buf, (const uint8_t *)&data, 8);
 }
@@ -91,7 +95,7 @@ static void out_str(Buffer &out, const char *s, size_t size) {
 
 static void out_int(Buffer &out, int64_t val) {
     buf_append_u8(out, TAG_INT);
-    buf_append_u32(out, val);
+    buf_append_i64(out, val);
 }
 
 static void out_arr(Buffer &out, uint32_t n) {
@@ -341,7 +345,7 @@ void do_request(std::vector<std::string> &cmd, Buffer &out) {
     } else if (cmd.size() == 3 && cmd[0] == "zscore") {
         return do_zscore(cmd, out);
     } else if (cmd.size() == 6 && cmd[0] == "zquery") {
-        return do_zscore(cmd, out);
+        return do_zquery(cmd, out);
     } else {
         out_err(out, ERR_UNKNOWN, "uknown command.");
     }

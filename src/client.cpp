@@ -115,7 +115,7 @@ static int32_t print_response(const uint8_t *data, size_t size) {
             {
                 uint32_t len = 0;
                 memcpy(&len, &data[1], 4);
-                printf("(arr) len = %u\n", len);
+                printf("(arr) len=%u\n", len);
                 size_t arr_bytes = 1 + 4;
                 for (uint32_t i = 0; i < len; i++) {
                     int32_t rv = print_response(&data[arr_bytes], size - arr_bytes);
@@ -178,13 +178,26 @@ int main(int argc, char **argv) {
         die("socket()");
     }
 
-    const char *server_ip = (argc > 1) ? argv[1] : "127.0.0.1";
-
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(1234);
-    if (inet_pton(AF_INET, server_ip, &addr.sin_addr) <= 0) {
-        die("invalid IP address");
+
+    const char *server_ip = "127.0.0.1";
+    int cmd_start = 1;
+
+    // Check if argv[1] is a valid IPv4 address (e.g. 192.168.x.x)
+    if (argc > 1 && inet_pton(AF_INET, argv[1], &addr.sin_addr) == 1) {
+        server_ip = argv[1];
+        cmd_start = 2;
+    } else {
+        if (inet_pton(AF_INET, server_ip, &addr.sin_addr) <= 0) {
+            die("invalid IP address");
+        }
+    }
+
+    if (cmd_start >= argc) {
+        fprintf(stderr, "Usage: %s [server_ip] <cmd> [args...]\n", argv[0]);
+        return 1;
     }
 
     int rv = connect(fd, (const struct sockaddr *) &addr, sizeof(addr));
@@ -193,7 +206,7 @@ int main(int argc, char **argv) {
     }
 
     std::vector<std::string> cmd;
-    for (int i = 2; i < argc; i++) {
+    for (int i = cmd_start; i < argc; i++) {
         cmd.push_back(argv[i]);
     }
 

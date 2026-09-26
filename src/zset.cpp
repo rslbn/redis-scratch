@@ -73,7 +73,7 @@ static void zset_update(ZSet *zset, ZNode *node, double score) {
 }
 
 bool zset_insert(ZSet *zset, const char *name, size_t len, double score) {
-    ZNode *node = zset_lookup(zset, name, score);
+    ZNode *node = zset_lookup(zset, name, len);
     if (node) {
         zset_update(zset, node, score);
         return false;
