@@ -3,7 +3,9 @@
 
 enum {
     ERR_UNKNOWN = 1,
-    ERR_TO_BIG = 2
+    ERR_TO_BIG = 2,
+    ERR_BAD_TYP = 3,
+    ERR_BAD_ARG = 4
 };
 
 enum {
@@ -35,4 +37,11 @@ enum {
  * Integers and lengths are encoded in little-endian, which
  * is just `memcpy`ing values on all relevant platforms
  */
+
+enum {
+    T_INIT = 0,
+    T_STR = 1,  // string
+    T_ZSET = 2 // sorted set
+};
+
 #endif

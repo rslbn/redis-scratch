@@ -5,6 +5,6 @@ if [ ! -d "build" ]; then
     mkdir -p build
 fi
 
-g++ src/server.cpp src/utils.cpp src/hashtable.cpp -I include/ -o build/server
+g++ src/server.cpp src/utils.cpp src/hashtable.cpp src/avl.cpp src/zset.cpp -I include/ -o build/server
 
 ./build/server

@@ -14,6 +14,8 @@
 #include "../include/utils.h"
 #include "../include/enums.h"
 
+static const size_t K_MAX_MSG = 4096;
+
 static void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len) {
     buf.insert(buf.end(), data, data + len);
 }
