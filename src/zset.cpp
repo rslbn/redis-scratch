@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "zset.h"
-#include "../include/hashtable.h"
 #include "../include/common.h"
 
 static ZNode *znode_new(const char *name, size_t len, double score)  {
